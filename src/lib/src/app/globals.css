@@ -1,0 +1,32 @@
+/* src/app/globals.css
+   App-wide base styles for the Dolphins Swim Tracker.
+   Tailwind is loaded here, plus a few global defaults for our
+   big, bold, playful, dolphin-blue look. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default page background and text: deep navy with light text,
+   so every screen starts on-brand without repeating it everywhere. */
+body {
+  background-color: #0a2a5e;   /* navy-deep */
+  color: #f0f4f8;              /* silver-white */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth out tap interactions on iPad (no ugly highlight box on touch). */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A gentle wiggle animation we'll reuse for celebration moments. */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-4deg); }
+  75%      { transform: rotate(4deg); }
+}
+.animate-wiggle {
+  animation: wiggle 0.4s ease-in-out;
+}
