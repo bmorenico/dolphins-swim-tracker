@@ -181,7 +181,16 @@ export default function SwimmerProfile({ params }) {
       </div>
 
       {/* Events */}
-      <h2 className="mt-8 mb-4 text-xl text-silver-white font-heading">Her Events</h2>
+<div className="mt-8 mb-4 flex items-center justify-between">
+        <h2 className="text-xl text-silver-white font-heading">Her Events</h2>
+        <Link
+          href={`/add?swimmer=${slug}`}
+          className="px-4 py-2 rounded-xl2 bg-celebration-gold text-navy-deep text-sm
+                     font-heading active:scale-95 transition-transform"
+        >
+          ➕ Add result
+        </Link>
+      </div>
 
       {events.length === 0 ? (
         <p className="text-splash-blue">No results yet — let's add her first swim! 🌟</p>
