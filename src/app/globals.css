@@ -30,3 +30,9 @@ body {
 .animate-wiggle {
   animation: wiggle 0.4s ease-in-out;
 }
+/* Heading font helper — applies the playful Fredoka font.
+   Used via className="font-heading" on titles and big labels. */
+.font-heading {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+}
