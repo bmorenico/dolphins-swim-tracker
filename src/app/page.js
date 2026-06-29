@@ -22,8 +22,7 @@ export default function HomePage() {
 
       {/* ---- Big playful welcome ---- */}
       <h1
-        className="mt-6 text-4xl md:text-5xl text-center text-celebration-gold"
-        style={{ fontFamily: 'var(--font-fredoka)', fontWeight: 700 }}
+        className="mt-6 text-4xl md:text-5xl text-center text-celebration-gold font-heading"
       >
         Dolphins Swim Tracker
       </h1>
@@ -33,10 +32,7 @@ export default function HomePage() {
 
       {/* ---- Swimmer card (tap to open profile) ---- */}
       <div className="mt-10 w-full max-w-md">
-        <h2
-          className="text-xl mb-3 text-silver-white"
-          style={{ fontFamily: 'var(--font-fredoka)', fontWeight: 600 }}
-        >
+        <h2 className="text-xl mb-3 text-silver-white font-heading">
           Swimmers
         </h2>
 
@@ -45,13 +41,11 @@ export default function HomePage() {
                           shadow-lg active:scale-95 transition-transform cursor-pointer">
             {/* Round avatar bubble with her first initial */}
             <div className="w-16 h-16 rounded-full bg-navy-deep flex items-center
-                            justify-center text-3xl text-celebration-gold shrink-0"
-                 style={{ fontFamily: 'var(--font-fredoka)', fontWeight: 700 }}>
+                            justify-center text-3xl text-celebration-gold shrink-0 font-heading">
               F
             </div>
             <div>
-              <p className="text-2xl text-white"
-                 style={{ fontFamily: 'var(--font-fredoka)', fontWeight: 600 }}>
+              <p className="text-2xl text-white font-heading">
                 Francesca
               </p>
               <p className="text-splash-blue">Age 8 · Dulaney Dolphins</p>
