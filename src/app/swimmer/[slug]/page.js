@@ -321,13 +321,20 @@ export default function SwimmerProfile({ params }) {
                     </div>
                   </div>
                 )}
-
-                {/* League STR standard — small background context */}
+{/* League STR standard — small background context */}
                 {ev.str != null && (
                   <p className="mt-3 text-xs text-splash-blue/50">
                     League standard (STR): {formatTime(ev.str)}
                   </p>
                 )}
+
+                {/* Link to this event's full history + progress chart */}
+                <Link
+                  href={`/event?swimmer=${slug}&event=${encodeURIComponent(ev.event)}`}
+                  className="mt-3 inline-block text-sm text-dolphin-blue hover:text-white font-heading"
+                >
+                  📈 See progress
+                </Link>
               </div>
             );
           })}
