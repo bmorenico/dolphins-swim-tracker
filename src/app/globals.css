@@ -30,6 +30,16 @@ body {
 .animate-wiggle {
   animation: wiggle 0.4s ease-in-out;
 }
+
+/* A celebratory "pop-in" for the personal-best pop-up card. */
+@keyframes pop {
+  0%   { transform: scale(0.7); opacity: 0; }
+  60%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: pop 0.4s ease-out;
+}
 /* Heading font helper — applies the playful Fredoka font.
    Used via className="font-heading" on titles and big labels. */
 .font-heading {
