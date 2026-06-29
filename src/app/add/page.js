@@ -6,6 +6,7 @@
 //   • detects a personal best, stamps is_personal_best + time_diff_vs_previous,
 //     and clears the flag on her previous best for that event
 //   • reuses the selected meet so multiple events from one day stay together
+//   • CELEBRATES a personal best with confetti + a pop-up 🎉
 //
 // Schema reference (Supabase):
 //   swimmers(id, name, age, team, color, avatar_url, created_at)
@@ -19,6 +20,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../lib/supabase';
 
 // Standard Girls 8 & Under individual events, with their stroke, distance,
@@ -54,6 +56,20 @@ function formatTime(seconds) {
   return `${mins}:${secs.padStart(5, '0')}`;
 }
 
+// Fire a cheerful confetti burst in the dolphin color palette.
+function fireConfetti() {
+  const colors = ['#ffc94d', '#2b8cde', '#7ec8f0', '#0a2a5e', '#f0f4f8'];
+  confetti({ particleCount: 130, spread: 75, origin: { y: 0.6 }, colors });
+  setTimeout(
+    () => confetti({ particleCount: 80, angle: 60, spread: 60, origin: { x: 0 }, colors }),
+    150
+  );
+  setTimeout(
+    () => confetti({ particleCount: 80, angle: 120, spread: 60, origin: { x: 1 }, colors }),
+    300
+  );
+}
+
 export default function AddResultPage() {
   // Reference data
   const [swimmers, setSwimmers] = useState([]);
@@ -76,7 +92,8 @@ export default function AddResultPage() {
   const [notes, setNotes] = useState('');
 
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState(null); // {message, isPB} success summary
+  const [result, setResult] = useState(null);       // {message, isPB} banner
+  const [celebration, setCelebration] = useState(null); // {event, time, diff, first} pop-up
 
   // ---- Load swimmers + meets; prefill swimmer from ?swimmer= if present ----
   useEffect(() => {
@@ -191,7 +208,7 @@ export default function AddResultPage() {
         notes: notes.trim() || null,
       });
 
-      // 5) Build a friendly success message.
+      // 5) Build a friendly success message + celebrate a personal best.
       let message;
       if (isPB && priorBest == null) {
         message = `🌟 First time swimming ${eventName} — that's a personal best at ${formatTime(timeValue)}!`;
@@ -201,6 +218,16 @@ export default function AddResultPage() {
         message = `✅ Saved! Her best ${eventName} stays ${formatTime(priorBest)}. Keep swimming! 🏊‍♀️`;
       }
       setResult({ message, isPB });
+
+      if (isPB) {
+        fireConfetti();
+        setCelebration({
+          event: eventName,
+          time: timeValue,
+          diff: timeDiff,           // null for a first-ever swim
+          first: priorBest == null, // true if this is her very first swim of it
+        });
+      }
 
       // 6) Reset event/time/place/notes but KEEP swimmer + meet, so adding the
       //    next event from the same meet is quick. Refresh meets list too.
@@ -440,6 +467,46 @@ export default function AddResultPage() {
           </Link>
         </div>
       </div>
+
+      {/* ---- PERSONAL BEST CELEBRATION POP-UP ---- */}
+      {celebration && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6
+                     bg-navy-deep/80 backdrop-blur-sm"
+          onClick={() => setCelebration(null)}
+        >
+          <div
+            className="animate-pop bg-navy-deep border-4 border-celebration-gold rounded-xl2
+                       p-8 max-w-sm w-full text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-6xl animate-wiggle">🏆</div>
+            <p className="mt-3 text-2xl text-celebration-gold font-heading">
+              NEW PERSONAL BEST!
+            </p>
+            <p className="mt-1 text-splash-blue font-heading">{celebration.event}</p>
+
+            <p className="mt-4 text-5xl text-white font-heading">
+              {formatTime(celebration.time)}
+              <span className="text-lg text-splash-blue/70 ml-1">sec</span>
+            </p>
+
+            <p className="mt-3 text-lg text-celebration-gold">
+              {celebration.first
+                ? 'Your very first time — way to go! 🌟'
+                : `${celebration.diff.toFixed(2)} seconds faster! 🎉`}
+            </p>
+
+            <button
+              onClick={() => setCelebration(null)}
+              className="mt-6 w-full px-6 py-3 rounded-xl2 bg-celebration-gold text-navy-deep
+                         text-lg font-heading active:scale-95 transition-transform"
+            >
+              Yay! 🎉
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
