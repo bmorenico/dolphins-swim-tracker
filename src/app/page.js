@@ -1,7 +1,6 @@
 // src/app/page.js
-// HOME SCREEN — the first thing you see. Shows the Dulaney Dolphin logo,
-// a big warm welcome, and a tappable card for Francesca that links to her
-// profile page (built next). Uses our dolphin-blue palette + playful fonts.
+// HOME SCREEN — Dulaney Dolphin logo, warm welcome, a tappable card for
+// Francesca, and a quick "Add a result" button.
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,9 +20,7 @@ export default function HomePage() {
       />
 
       {/* ---- Big playful welcome ---- */}
-      <h1
-        className="mt-6 text-4xl md:text-5xl text-center text-celebration-gold font-heading"
-      >
+      <h1 className="mt-6 text-4xl md:text-5xl text-center text-celebration-gold font-heading">
         Dolphins Swim Tracker
       </h1>
       <p className="mt-3 text-lg md:text-xl text-splash-blue text-center">
@@ -51,6 +48,15 @@ export default function HomePage() {
               <p className="text-splash-blue">Age 8 · Dulaney Dolphins</p>
             </div>
             <span className="ml-auto text-2xl text-white">→</span>
+          </div>
+        </Link>
+
+        {/* ---- Add a result button ---- */}
+        <Link href="/add">
+          <div className="mt-4 bg-celebration-gold rounded-xl2 p-5 flex items-center
+                          justify-center gap-2 shadow-lg active:scale-95 transition-transform
+                          cursor-pointer text-navy-deep font-heading text-lg">
+            ➕ Add a result
           </div>
         </Link>
       </div>
