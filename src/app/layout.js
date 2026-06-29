@@ -1,23 +1,9 @@
 // src/app/layout.js
-// The wrapper around every page in the app. Loads our fonts, the global
-// stylesheet, and sets the browser-tab title. Runs on every screen.
+// The wrapper around every page in the app. Loads our fonts (via a simple
+// stylesheet link so the build never depends on fetching them), pulls in the
+// global stylesheet, and sets the browser-tab title. Runs on every screen.
 
 import './globals.css';
-import { Fredoka, Nunito } from 'next/font/google';
-
-// Fredoka = big, friendly, rounded headings (the "playful" voice).
-const fredoka = Fredoka({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-fredoka',
-});
-
-// Nunito = clean, readable body text that's still warm.
-const nunito = Nunito({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-nunito',
-});
 
 export const metadata = {
   title: 'Dulaney Dolphins Swim Tracker',
@@ -26,8 +12,18 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${nunito.variable}`}>
-      <body style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>
+    <html lang="en">
+      <head>
+        {/* Load our two fonts straight from Google Fonts in the browser.
+            Fredoka = playful rounded headings. Nunito = clean body text. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body style={{ fontFamily: "'Nunito', sans-serif" }}>
         {children}
       </body>
     </html>
