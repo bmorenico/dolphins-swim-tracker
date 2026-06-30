@@ -6,6 +6,8 @@
 //   📈 a recharts line chart of her times over meets (line DOWN = faster)
 //   🎯 a goal reference line if she has a custom goal
 //   a chronological list of every swim with date, meet, place, PB + diff
+//   ✏️ inline EDIT (time / place / notes) and 🗑️ DELETE for each swim,
+//      with automatic personal-best re-check after any change.
 //
 // Schema reference (Supabase):
 //   swimmers(id, name, age, team, color, avatar_url, created_at)
@@ -40,6 +42,20 @@ function formatTime(seconds) {
   return `${mins}:${secs.padStart(5, '0')}`;
 }
 
+// Parse a typed time into seconds. Accepts "29.56", "29", or "1:05.30".
+function parseTimeInput(str) {
+  if (!str) return null;
+  const t = String(str).trim();
+  let value;
+  if (t.includes(':')) {
+    const [m, s] = t.split(':');
+    value = parseInt(m, 10) * 60 + parseFloat(s);
+  } else {
+    value = parseFloat(t);
+  }
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 // "2026-06-27" -> "6/27"
 function shortDate(dateStr) {
   if (!dateStr) return '';
@@ -56,16 +72,55 @@ export default function EventDetailPage() {
   const [strTime, setStrTime] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Edit / delete state
+  const [editingId, setEditingId] = useState(null);
+  const [editTime, setEditTime] = useState('');
+  const [editPlace, setEditPlace] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [confirmId, setConfirmId] = useState(null); // delete confirmation
+  const [busy, setBusy] = useState(false);
+
+  // Load (or reload) everything for a given swimmer + event.
+  async function loadData(match, evName) {
+    const [{ data: res }, { data: meets }, { data: goals }] = await Promise.all([
+      supabase.from('results').select('*').eq('swimmer_id', match.id).eq('event', evName),
+      supabase.from('meets').select('*'),
+      supabase.from('goals').select('*').eq('swimmer_id', match.id).eq('event', evName),
+    ]);
+
+    const meetById = {};
+    (meets || []).forEach((m) => (meetById[m.id] = m));
+
+    const rows = (res || [])
+      .map((r) => ({
+        ...r,
+        meet: meetById[r.meet_id] || null,
+        date: meetById[r.meet_id]?.date || r.created_at,
+      }))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    const best = rows.length ? Math.min(...rows.map((r) => r.finals_time)) : null;
+    let runningBest = null;
+    const enriched = rows.map((r) => {
+      const improved = runningBest != null && r.finals_time < runningBest;
+      const diff = improved ? +(runningBest - r.finals_time).toFixed(2) : null;
+      if (runningBest == null || r.finals_time < runningBest) runningBest = r.finals_time;
+      return { ...r, isBest: r.finals_time === best, diff };
+    });
+
+    setSwims(enriched);
+    setGoalTime(goals && goals.length ? goals[0].goal_time : null);
+    setStrTime(rows.find((r) => r.str_standard_time != null)?.str_standard_time ?? null);
+  }
+
   useEffect(() => {
-    // Read swimmer + event from the URL query string.
     const qs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const sSlug = qs ? qs.get('swimmer') || '' : '';
     const sEvent = qs ? qs.get('event') || '' : '';
     setSlug(sSlug);
     setEventName(sEvent);
 
-    async function load() {
-      // Find the swimmer by the first word of their name.
+    async function init() {
       const { data: swimmers } = await supabase.from('swimmers').select('*');
       const match = (swimmers || []).find(
         (s) => s.name.split(' ')[0].toLowerCase() === sSlug.toLowerCase()
@@ -75,51 +130,74 @@ export default function EventDetailPage() {
         return;
       }
       setSwimmer(match);
-
-      // Load her results for this event, the meets (for dates/names), and goal.
-      const [{ data: res }, { data: meets }, { data: goals }] = await Promise.all([
-        supabase
-          .from('results')
-          .select('*')
-          .eq('swimmer_id', match.id)
-          .eq('event', sEvent),
-        supabase.from('meets').select('*'),
-        supabase
-          .from('goals')
-          .select('*')
-          .eq('swimmer_id', match.id)
-          .eq('event', sEvent),
-      ]);
-
-      const meetById = {};
-      (meets || []).forEach((m) => (meetById[m.id] = m));
-
-      // Sort chronologically by meet date (fallback to created_at).
-      const rows = (res || [])
-        .map((r) => ({
-          ...r,
-          meet: meetById[r.meet_id] || null,
-          date: meetById[r.meet_id]?.date || r.created_at,
-        }))
-        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-
-      // Mark the overall PB and the improvement vs her best-so-far.
-      const best = rows.length ? Math.min(...rows.map((r) => r.finals_time)) : null;
-      let runningBest = null;
-      const enriched = rows.map((r) => {
-        const improved = runningBest != null && r.finals_time < runningBest;
-        const diff = improved ? +(runningBest - r.finals_time).toFixed(2) : null;
-        if (runningBest == null || r.finals_time < runningBest) runningBest = r.finals_time;
-        return { ...r, isBest: r.finals_time === best, diff };
-      });
-
-      setSwims(enriched);
-      setGoalTime(goals && goals.length ? goals[0].goal_time : null);
-      setStrTime(rows.find((r) => r.str_standard_time != null)?.str_standard_time ?? null);
+      await loadData(match, sEvent);
       setLoading(false);
     }
-    load();
+    init();
   }, []);
+
+  // After any edit/delete, re-stamp which swim is the personal best.
+  async function restampPB(evName) {
+    const { data } = await supabase
+      .from('results')
+      .select('id, finals_time, created_at')
+      .eq('swimmer_id', swimmer.id)
+      .eq('event', evName);
+    if (!data || data.length === 0) return;
+    const winner = [...data].sort(
+      (a, b) =>
+        a.finals_time - b.finals_time ||
+        (a.created_at < b.created_at ? -1 : 1)
+    )[0];
+    await supabase
+      .from('results')
+      .update({ is_personal_best: false })
+      .eq('swimmer_id', swimmer.id)
+      .eq('event', evName);
+    await supabase.from('results').update({ is_personal_best: true }).eq('id', winner.id);
+  }
+
+  function startEdit(s) {
+    setConfirmId(null);
+    setEditingId(s.id);
+    setEditTime(String(s.finals_time));
+    setEditPlace(s.place != null ? String(s.place) : '');
+    setEditNotes(s.notes || '');
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditTime('');
+    setEditPlace('');
+    setEditNotes('');
+  }
+
+  async function saveEdit(s) {
+    const t = parseTimeInput(editTime);
+    if (t == null) return; // ignore unparseable time
+    setBusy(true);
+    await supabase
+      .from('results')
+      .update({
+        finals_time: t,
+        place: editPlace.trim() ? parseInt(editPlace, 10) : null,
+        notes: editNotes.trim() || null,
+      })
+      .eq('id', s.id);
+    await restampPB(eventName);
+    await loadData(swimmer, eventName);
+    setBusy(false);
+    cancelEdit();
+  }
+
+  async function doDelete(id) {
+    setBusy(true);
+    await supabase.from('results').delete().eq('id', id);
+    await restampPB(eventName);
+    await loadData(swimmer, eventName);
+    setBusy(false);
+    setConfirmId(null);
+  }
 
   if (loading) {
     return (
@@ -144,7 +222,6 @@ export default function EventDetailPage() {
   const firstName = swimmer.name.split(' ')[0];
   const pb = Math.min(...swims.map((s) => s.finals_time));
 
-  // Chart data + a zoomed y-axis range so her changes are easy to see.
   const chartData = swims.map((s) => ({
     label: shortDate(s.date),
     time: s.finals_time,
@@ -155,7 +232,6 @@ export default function EventDetailPage() {
   const yMin = Math.floor(lowEnd - 1);
   const yMax = Math.ceil(Math.max(...times) + 1);
 
-  // Custom dot: gold + bigger for her personal best, splash-blue otherwise.
   const renderDot = (props) => {
     const { cx, cy, payload } = props;
     const best = payload.isBest;
@@ -171,6 +247,10 @@ export default function EventDetailPage() {
       />
     );
   };
+
+  const editInput =
+    'w-full px-3 py-2 rounded-xl2 bg-navy-deep border border-splash-blue/40 ' +
+    'text-white focus:outline-none focus:border-celebration-gold';
 
   return (
     <main className="min-h-screen px-6 py-8 max-w-2xl mx-auto">
@@ -205,12 +285,7 @@ export default function EventDetailPage() {
               <LineChart data={chartData} margin={{ top: 10, right: 16, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2b8cde33" />
                 <XAxis dataKey="label" stroke="#7ec8f0" tick={{ fontSize: 12 }} />
-                <YAxis
-                  domain={[yMin, yMax]}
-                  stroke="#7ec8f0"
-                  tick={{ fontSize: 12 }}
-                  reversed={false}
-                />
+                <YAxis domain={[yMin, yMax]} stroke="#7ec8f0" tick={{ fontSize: 12 }} reversed={false} />
                 <Tooltip
                   contentStyle={{
                     background: '#0a2a5e',
@@ -259,39 +334,136 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {/* Full history list */}
+      {/* Full history list with edit / delete */}
       <h2 className="mt-8 mb-3 text-xl text-silver-white font-heading">Every Swim</h2>
       <div className="space-y-3">
-        {[...swims].reverse().map((s) => (
-          <div
-            key={s.id}
-            className={
-              'rounded-xl2 p-4 border ' +
-              (s.isBest
-                ? 'bg-celebration-gold/10 border-celebration-gold'
-                : 'bg-navy-deep border-dolphin-blue/40')
-            }
-          >
-            <div className="flex items-baseline justify-between">
-              <p className="text-2xl text-white font-heading">
-                {formatTime(s.finals_time)}
-                <span className="text-sm text-splash-blue/70 ml-1">sec</span>
-                {s.isBest && <span className="ml-2 text-celebration-gold text-base">⭐ PB</span>}
-              </p>
-              <span className="text-xs text-splash-blue/70">{shortDate(s.date)}</span>
+        {[...swims].reverse().map((s) => {
+          const isEditing = editingId === s.id;
+          const isConfirming = confirmId === s.id;
+
+          return (
+            <div
+              key={s.id}
+              className={
+                'rounded-xl2 p-4 border ' +
+                (s.isBest
+                  ? 'bg-celebration-gold/10 border-celebration-gold'
+                  : 'bg-navy-deep border-dolphin-blue/40')
+              }
+            >
+              {!isEditing ? (
+                <>
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-2xl text-white font-heading">
+                      {formatTime(s.finals_time)}
+                      <span className="text-sm text-splash-blue/70 ml-1">sec</span>
+                      {s.isBest && <span className="ml-2 text-celebration-gold text-base">⭐ PB</span>}
+                    </p>
+                    <span className="text-xs text-splash-blue/70">{shortDate(s.date)}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-splash-blue">
+                    {s.meet ? s.meet.name : 'Meet'}
+                    {s.place ? ` · Place ${s.place}` : ''}
+                  </p>
+                  {s.diff != null && (
+                    <p className="mt-1 text-sm text-celebration-gold">
+                      {s.diff.toFixed(2)} sec faster than before! 🎉
+                    </p>
+                  )}
+                  {s.notes && <p className="mt-1 text-sm text-splash-blue/80 italic">“{s.notes}”</p>}
+
+                  {/* Edit / delete controls */}
+                  {!isConfirming ? (
+                    <div className="mt-3 flex gap-4">
+                      <button
+                        onClick={() => startEdit(s)}
+                        className="text-sm text-dolphin-blue hover:text-white font-heading"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => { setEditingId(null); setConfirmId(s.id); }}
+                        className="text-sm text-splash-blue/70 hover:text-white font-heading"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="text-sm text-splash-blue">Delete this swim?</span>
+                      <button
+                        onClick={() => doDelete(s.id)}
+                        disabled={busy}
+                        className="px-4 py-2 rounded-xl2 bg-red-500/80 text-white text-sm font-heading active:scale-95 transition-transform"
+                      >
+                        {busy ? 'Deleting…' : 'Yes, delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        disabled={busy}
+                        className="px-4 py-2 rounded-xl2 text-splash-blue/70 text-sm font-heading"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* ---- EDIT MODE ---- */
+                <div className="space-y-3">
+                  <p className="text-xs text-splash-blue/70">
+                    {s.meet ? s.meet.name : 'Meet'} · {shortDate(s.date)}
+                  </p>
+                  <div>
+                    <label className="block text-xs text-splash-blue mb-1">Time (seconds)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={editTime}
+                      onChange={(e) => setEditTime(e.target.value)}
+                      className={editInput + ' text-xl font-heading text-center'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-splash-blue mb-1">Place (optional)</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={editPlace}
+                      onChange={(e) => setEditPlace(e.target.value)}
+                      className={editInput}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-splash-blue mb-1">Notes (optional)</label>
+                    <textarea
+                      rows={2}
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      className={editInput}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => saveEdit(s)}
+                      disabled={busy || parseTimeInput(editTime) == null}
+                      className="px-5 py-2 rounded-xl2 bg-celebration-gold text-navy-deep font-heading active:scale-95 transition-transform disabled:opacity-40"
+                    >
+                      {busy ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      disabled={busy}
+                      className="px-5 py-2 rounded-xl2 text-splash-blue/70 font-heading"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="mt-1 text-sm text-splash-blue">
-              {s.meet ? s.meet.name : 'Meet'}
-              {s.place ? ` · Place ${s.place}` : ''}
-            </p>
-            {s.diff != null && (
-              <p className="mt-1 text-sm text-celebration-gold">
-                {s.diff.toFixed(2)} sec faster than before! 🎉
-              </p>
-            )}
-            {s.notes && <p className="mt-1 text-sm text-splash-blue/80 italic">“{s.notes}”</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </main>
   );
