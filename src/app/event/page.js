@@ -31,7 +31,8 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';import { supabase } from '../../lib/supabase';
+import MediaGallery from '../../components/MediaGallery';
 
 // Pretty time label, e.g. 89.56 -> "1:29.56".
 function formatTime(seconds) {
@@ -371,6 +372,9 @@ export default function EventDetailPage() {
                     </p>
                   )}
                   {s.notes && <p className="mt-1 text-sm text-splash-blue/80 italic">“{s.notes}”</p>}
+
+                  {/* Photos / GIFs / video for this swim */}
+                  <MediaGallery resultId={s.id} />
 
                   {/* Edit / delete controls */}
                   {!isConfirming ? (
