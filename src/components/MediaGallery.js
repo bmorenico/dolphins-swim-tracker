@@ -55,25 +55,12 @@ function MediaImage({ url, caption }) {
 
   if (idx >= candidates.length) {
     return (
-      
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="block text-center text-sm text-dolphin-blue underline p-4"
-      >
-        Open photo ↗
-      </a>
+      <a href={url} target="_blank" rel="noreferrer" className="block text-center text-sm text-dolphin-blue underline p-4">Open photo ↗</a>
     );
   }
 
   return (
-    <img
-      src={candidates[idx]}
-      alt={caption || 'swim photo'}
-      onError={() => setIdx((i) => i + 1)}
-      className="w-full h-40 object-cover"
-      loading="lazy"
-    />
+    <img src={candidates[idx]} alt={caption || 'swim photo'} onError={() => setIdx((i) => i + 1)} className="w-full h-40 object-cover" loading="lazy" />
   );
 }
 
@@ -84,50 +71,22 @@ function MediaVideo({ url, caption }) {
 
   if (!id) {
     return (
-      
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="block text-center text-sm text-dolphin-blue underline p-4"
-      >
-        Open video ↗
-      </a>
+      <a href={url} target="_blank" rel="noreferrer" className="block text-center text-sm text-dolphin-blue underline p-4">Open video ↗</a>
     );
   }
 
   if (playing) {
     return (
       <div className="w-full" style={{ aspectRatio: '16 / 9' }}>
-        <iframe
-          src={`https://www.youtube.com/embed/${id}?autoplay=1`}
-          title={caption || 'swim video'}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-          style={{ border: 0 }}
-        />
+        <iframe src={`https://www.youtube.com/embed/${id}?autoplay=1`} title={caption || 'swim video'} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" style={{ border: 0 }} />
       </div>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => setPlaying(true)}
-      className="relative block w-full h-40 group"
-    >
-      <img
-        src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`}
-        alt={caption || 'swim video'}
-        className="w-full h-40 object-cover"
-        loading="lazy"
-      />
-      <span
-        className="absolute inset-0 flex items-center justify-center text-4xl
-                   bg-navy-deep/30 group-active:scale-95 transition-transform"
-      >
-        ▶️
-      </span>
+    <button type="button" onClick={() => setPlaying(true)} className="relative block w-full h-40 group">
+      <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt={caption || 'swim video'} className="w-full h-40 object-cover" loading="lazy" />
+      <span className="absolute inset-0 flex items-center justify-center text-4xl bg-navy-deep/30 group-active:scale-95 transition-transform">▶️</span>
     </button>
   );
 }
@@ -206,17 +165,9 @@ export default function MediaGallery({ resultId = null, meetId = null }) {
   return (
     <div className="mt-3 pt-3 border-t border-splash-blue/20">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-splash-blue font-heading">
-          📸 Photos &amp; video{items.length ? ` (${items.length})` : ''}
-        </p>
+        <p className="text-sm text-splash-blue font-heading">📸 Photos &amp; video{items.length ? ` (${items.length})` : ''}</p>
         {!adding && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="text-sm text-dolphin-blue hover:text-white font-heading"
-          >
-            ➕ Add
-          </button>
+          <button type="button" onClick={() => setAdding(true)} className="text-sm text-dolphin-blue hover:text-white font-heading">➕ Add</button>
         )}
       </div>
 
@@ -224,10 +175,7 @@ export default function MediaGallery({ resultId = null, meetId = null }) {
       {!loading && items.length > 0 && (
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {items.map((m) => (
-            <div
-              key={m.id}
-              className="rounded-xl2 overflow-hidden border border-dolphin-blue/40 bg-navy-deep"
-            >
+            <div key={m.id} className="rounded-xl2 overflow-hidden border border-dolphin-blue/40 bg-navy-deep">
               {m.media_type === 'video' ? (
                 <MediaVideo url={m.url} caption={m.caption} />
               ) : (
@@ -238,27 +186,11 @@ export default function MediaGallery({ resultId = null, meetId = null }) {
               )}
               {confirmId === m.id ? (
                 <div className="flex items-center justify-between px-2 py-1 gap-2">
-                  <button
-                    onClick={() => removeMedia(m.id)}
-                    disabled={busy}
-                    className="text-xs text-red-300 font-heading"
-                  >
-                    {busy ? '…' : 'Delete?'}
-                  </button>
-                  <button
-                    onClick={() => setConfirmId(null)}
-                    className="text-xs text-splash-blue/70 font-heading"
-                  >
-                    Keep
-                  </button>
+                  <button onClick={() => removeMedia(m.id)} disabled={busy} className="text-xs text-red-300 font-heading">{busy ? '…' : 'Delete?'}</button>
+                  <button onClick={() => setConfirmId(null)} className="text-xs text-splash-blue/70 font-heading">Keep</button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setConfirmId(m.id)}
-                  className="w-full px-2 py-1 text-xs text-splash-blue/50 hover:text-white text-right"
-                >
-                  🗑️
-                </button>
+                <button onClick={() => setConfirmId(m.id)} className="w-full px-2 py-1 text-xs text-splash-blue/50 hover:text-white text-right">🗑️</button>
               )}
             </div>
           ))}
@@ -268,51 +200,20 @@ export default function MediaGallery({ resultId = null, meetId = null }) {
       {/* Add form */}
       {adding && (
         <div className="mt-3 bg-navy-deep/60 border border-dolphin-blue/40 rounded-xl2 p-3 space-y-2">
-          <input
-            type="text"
-            placeholder="Paste an unlisted Google Drive or YouTube link"
-            value={url}
-            onChange={(e) => onUrlChange(e.target.value)}
-            className={inputClass}
-          />
+          <input type="text" placeholder="Paste an unlisted Google Drive or YouTube link" value={url} onChange={(e) => onUrlChange(e.target.value)} className={inputClass} />
           <div className="flex gap-2">
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className={inputClass + ' flex-1'}
-            >
+            <select value={type} onChange={(e) => setType(e.target.value)} className={inputClass + ' flex-1'}>
               <option value="photo">Photo</option>
               <option value="gif">GIF</option>
               <option value="video">Video (YouTube)</option>
             </select>
-            <input
-              type="text"
-              placeholder="Caption (optional)"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className={inputClass + ' flex-1'}
-            />
+            <input type="text" placeholder="Caption (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} className={inputClass + ' flex-1'} />
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={addMedia}
-              disabled={busy || !url.trim()}
-              className="px-4 py-2 rounded-xl2 bg-celebration-gold text-navy-deep text-sm
-                         font-heading active:scale-95 transition-transform disabled:opacity-40"
-            >
-              {busy ? 'Adding…' : 'Add media'}
-            </button>
-            <button
-              onClick={() => { setAdding(false); setUrl(''); setCaption(''); }}
-              disabled={busy}
-              className="px-4 py-2 rounded-xl2 text-splash-blue/70 text-sm font-heading"
-            >
-              Cancel
-            </button>
+            <button onClick={addMedia} disabled={busy || !url.trim()} className="px-4 py-2 rounded-xl2 bg-celebration-gold text-navy-deep text-sm font-heading active:scale-95 transition-transform disabled:opacity-40">{busy ? 'Adding…' : 'Add media'}</button>
+            <button onClick={() => { setAdding(false); setUrl(''); setCaption(''); }} disabled={busy} className="px-4 py-2 rounded-xl2 text-splash-blue/70 text-sm font-heading">Cancel</button>
           </div>
-          <p className="text-xs text-splash-blue/50">
-            Tip: in Google Drive, set the file to “Anyone with the link”. In YouTube, set the video to “Unlisted”.
-          </p>
+          <p className="text-xs text-splash-blue/50">Tip: in Google Drive, set the file to “Anyone with the link”. In YouTube, set the video to “Unlisted”.</p>
         </div>
       )}
     </div>
