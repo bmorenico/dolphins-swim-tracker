@@ -8,6 +8,7 @@
 //   a chronological list of every swim with date, meet, place, PB + diff
 //   ✏️ inline EDIT (time / place / notes) and 🗑️ DELETE for each swim,
 //      with automatic personal-best re-check after any change.
+//   📸 a per-swim media gallery (photos/GIFs/video).
 //
 // Schema reference (Supabase):
 //   swimmers(id, name, age, team, color, avatar_url, created_at)
@@ -16,6 +17,7 @@
 //           finals_time, seed_time, is_personal_best, time_diff_vs_previous,
 //           str_standard_time, place, points, notes, created_at)
 //   goals(id, swimmer_id, event, goal_time, created_at)
+//   media(id, result_id, meet_id, media_type, url, caption, thumbnail_url, created_at)
 
 'use client';
 
@@ -31,7 +33,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { supabase } from '../../lib/supabase';import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import MediaGallery from '../../components/MediaGallery';
 
 // Pretty time label, e.g. 89.56 -> "1:29.56".
@@ -335,7 +337,7 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {/* Full history list with edit / delete */}
+      {/* Full history list with edit / delete + media */}
       <h2 className="mt-8 mb-3 text-xl text-silver-white font-heading">Every Swim</h2>
       <div className="space-y-3">
         {[...swims].reverse().map((s) => {
